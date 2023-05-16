@@ -157,6 +157,7 @@ found:
 static void
 freeproc(struct proc *p)
 {
+
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
@@ -390,58 +391,63 @@ exit(int status)
   sched();
   panic("zombie exit");
 }
+
 int wait(uint64 addr){
     waitpid(-1, NULL, addr);
 }
-// Wait for a child process to exit and return its pid.
-// Return -1 if this process has no children.
+// Wait for a specific process to exit
+// returns PID of exited proc, or -1 if no children exist
 int
 waitpid(int pid,int* status, uint64 addr)
 {
-  struct proc *pp;
-  int havekids, pid;
-  struct proc *p = myproc();
+    struct proc *pp;
+    int havekids, pid_l;
+    struct proc *p = myproc();
 
-  acquire(&wait_lock);
+    acquire(&wait_lock);
 
-  for(;;){
-    // Scan through table looking for exited children.
-    havekids = 0;
-    for(pp = proc; pp < &proc[NPROC]; pp++){
-      if(pp->pid != p){continue;}
-        // make sure the child isn't still in exit() or swtch().
-        acquire(&pp->lock);
+    for(;;){
+	// Scan through table looking for exited children.
+	havekids = 0;
+	for(pp = proc; pp < &proc[NPROC]; pp++){
+	    if(pid == -1){
+		if(pp->pid != proc){continue;}
+	    }else{
+		if(pp->parent != pid){continue;}
+	    }
+	    // make sure the child isn't still in exit() or swtch().
+	    acquire(&pp->lock);
 
-        havekids = 1;
-        if(pp->state == ZOMBIE){
-          // Found one.
-          pid = pp->pid;
-          if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
-                                  sizeof(pp->xstate)) < 0) {
-            release(&pp->lock);
-            release(&wait_lock);
-            return -1;
-          }
-          freeproc(pp);
-          release(&pp->lock);
-          release(&wait_lock);
-	  if(*status != 0){
-	    status = pp->xstat;
-	  }
-          return pid;
-        }
-        release(&pp->lock);
+	    havekids = 1;
+	    if(pp->state == ZOMBIE){
+		// Found one.
+		pid_l = pp->pid;
+		if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
+			    sizeof(pp->xstate)) < 0) {
+		    release(&pp->lock);
+		    release(&wait_lock);
+		    return -1;
+		}
+		freeproc(pp);
+		release(&pp->lock);
+		release(&wait_lock);
+		if(status != 0){
+		    *status = pp->xstat;
+		}
+		return pid_l;
+	    }
+	    release(&pp->lock);
+	}
+
+	// No point waiting if we don't have any children.
+	if(!havekids || killed(p)){
+	    release(&wait_lock);
+	    return -1;
+	}
+
+	// Wait for a child to exit.
+	sleep(p, &wait_lock);  //DOC: wait-sleep
     }
-
-    // No point waiting if we don't have any children.
-    if(!havekids || killed(p)){
-      release(&wait_lock);
-      return -1;
-    }
-    
-    // Wait for a child to exit.
-    sleep(p, &wait_lock);  //DOC: wait-sleep
-  }
 }
 
 // Per-CPU process scheduler.
