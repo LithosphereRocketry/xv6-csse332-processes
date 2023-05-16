@@ -1,4 +1,5 @@
 #include "clone.h"
+#include "kernel/types.h"
 #include "proc.h"
 #include "riscv.h"
 
