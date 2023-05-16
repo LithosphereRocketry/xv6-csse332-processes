@@ -45,10 +45,7 @@ int pthread_create(pthread_t *restrict thread,
 
 int pthread_join(pthread_t thread, void** retval) {
     int status;
-    // scuffed alternative to waitpid
-    while(wait(&status) != thread);
-    // retval not handled
-    return 0;
+    return waitpid(thread, &status, NULL); 
 }
 
 

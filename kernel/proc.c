@@ -390,11 +390,13 @@ exit(int status)
   sched();
   panic("zombie exit");
 }
-
+int wait(uint64 addr){
+    waitpid(-1, NULL, addr);
+}
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
-wait(uint64 addr)
+waitpid(int pid,int* status, uint64 addr)
 {
   struct proc *pp;
   int havekids, pid;
@@ -406,7 +408,7 @@ wait(uint64 addr)
     // Scan through table looking for exited children.
     havekids = 0;
     for(pp = proc; pp < &proc[NPROC]; pp++){
-      if(pp->parent == p){
+      if(pp->pid != p){continue;}
         // make sure the child isn't still in exit() or swtch().
         acquire(&pp->lock);
 
@@ -423,10 +425,12 @@ wait(uint64 addr)
           freeproc(pp);
           release(&pp->lock);
           release(&wait_lock);
+	  if(*status != 0){
+	    status = pp->xstat;
+	  }
           return pid;
         }
         release(&pp->lock);
-      }
     }
 
     // No point waiting if we don't have any children.
