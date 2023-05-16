@@ -392,13 +392,11 @@ exit(int status)
   panic("zombie exit");
 }
 
-int wait(uint64 addr){
-    waitpid(-1, NULL, addr);
-}
+
 // Wait for a specific process to exit
 // returns PID of exited proc, or -1 if no children exist
 int
-waitpid(int pid,int* status, uint64 addr)
+waitpid(int pid, int* status, uint64 addr)
 {
     struct proc *pp;
     int havekids, pid_l;
@@ -411,9 +409,9 @@ waitpid(int pid,int* status, uint64 addr)
 	havekids = 0;
 	for(pp = proc; pp < &proc[NPROC]; pp++){
 	    if(pid == -1){
-		if(pp->pid != proc){continue;}
+		if(pp->parent != proc){continue;}
 	    }else{
-		if(pp->parent != pid){continue;}
+		if(pp->pid != pid){continue;}
 	    }
 	    // make sure the child isn't still in exit() or swtch().
 	    acquire(&pp->lock);
@@ -432,7 +430,7 @@ waitpid(int pid,int* status, uint64 addr)
 		release(&pp->lock);
 		release(&wait_lock);
 		if(status != 0){
-		    *status = pp->xstat;
+		    *status = pp->xstate;
 		}
 		return pid_l;
 	    }
@@ -448,6 +446,9 @@ waitpid(int pid,int* status, uint64 addr)
 	// Wait for a child to exit.
 	sleep(p, &wait_lock);  //DOC: wait-sleep
     }
+}
+int wait(uint64 addr){
+    return waitpid(-1, (int*)0, addr);
 }
 
 // Per-CPU process scheduler.
