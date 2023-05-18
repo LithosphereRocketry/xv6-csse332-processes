@@ -188,21 +188,29 @@ allocclone(struct proc* pp)
 static void
 freeproc(struct proc *p)
 {
+    struct proc *pp;
+    int cid_tofind = p->cid;
+    int cid_count = 0;
 
-  if(p->trapframe)
-    kfree((void*)p->trapframe);
-  p->trapframe = 0;
-  if(p->pagetable)
-    proc_freepagetable(p->pagetable, p->sz);
-  p->pagetable = 0;
-  p->sz = 0;
-  p->pid = 0;
-  p->parent = 0;
-  p->name[0] = 0;
-  p->chan = 0;
-  p->killed = 0;
-  p->xstate = 0;
-  p->state = UNUSED;
+    for(pp = proc; pp < &proc[NPROC]; pp++){
+	if(pp->cid == cid_tofind){cid_count++;}
+    }
+    if(p->cid == cid_tofind){
+	if(p->trapframe)
+	    kfree((void*)p->trapframe);
+	p->trapframe = 0;
+	if(p->pagetable && cid_count == 1)
+	    proc_freepagetable(p->pagetable, p->sz);
+	p->pagetable = 0;
+	p->sz = 0;
+	p->pid = 0;
+	p->parent = 0;
+	p->name[0] = 0;
+	p->chan = 0;
+	p->killed = 0;
+	p->xstate = 0;
+	p->state = UNUSED;
+    }
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -295,19 +303,25 @@ userinit(void)
 int
 growproc(int n)
 {
-  uint64 sz;
-  struct proc *p = myproc();
-
-  sz = p->sz;
-  if(n > 0){
-    if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
-      return -1;
+    uint64 sz;
+    struct proc *p;
+    struct proc *pp = myproc();
+    int cid_tofind = pp->cid;
+    
+    for(p = proc; p < &proc[NPROC]; p++){
+	if(p->cid == cid_tofind){
+	    sz = p->sz;
+	    if(n > 0){
+		if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
+		    return -1;
+		}
+	    } else if(n < 0){
+		sz = uvmdealloc(p->pagetable, sz, sz + n);
+	    }
+	    p->sz = sz;
+	}
     }
-  } else if(n < 0){
-    sz = uvmdealloc(p->pagetable, sz, sz + n);
-  }
-  p->sz = sz;
-  return 0;
+    return 0;
 }
 
 // Create a new process, copying the parent.
