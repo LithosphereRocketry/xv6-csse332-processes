@@ -13,7 +13,9 @@ struct proc proc[NPROC];
 struct proc *initproc;
 
 int nextpid = 1;
+int nextcid = 1;
 struct spinlock pid_lock;
+struct spinlock cid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -93,7 +95,7 @@ int
 allocpid()
 {
   int pid;
-  
+
   acquire(&pid_lock);
   pid = nextpid;
   nextpid = nextpid + 1;
@@ -102,6 +104,16 @@ allocpid()
   return pid;
 }
 
+int alloccid(){
+    int cid;
+
+    acquire(&cid_lock);
+    cid = nextcid;
+    nextcid = nextcid + 1;
+    release(&pid_lock);
+
+    return cid;
+}
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -123,6 +135,7 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
+  p->cid = alloccid();
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -147,6 +160,24 @@ found:
   p->context.sp = p->kstack + PGSIZE;
 
   return p;
+}
+struct proc*
+allocclone(struct proc* pp)
+{
+    struct proc* p;
+
+    p = allocproc();
+
+    acquire(&p->lock);
+    acquire(&pp->lock);
+    p->cid = pp->cid;
+    release(&pp->lock);
+    release(&p->lock);
+
+    acquire(&cid_lock);
+    nextcid--;
+    release(&cid_lock);
+    return p;
 }
 
 // TODO - Free clones
