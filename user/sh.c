@@ -167,7 +167,9 @@ main(void)
     }
     if(fork1() == 0)
       runcmd(parsecmd(buf));
+    printf("prewait\n");
     wait(0);
+    printf("postwait\n");
   }
   exit(0);
 }
