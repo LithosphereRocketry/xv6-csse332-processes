@@ -188,6 +188,8 @@ allocclone(struct proc* pp)
 static void
 freeproc(struct proc *p)
 {
+  
+  printf("free\n");
     struct proc *pp;
     int cid_tofind = p->cid;
     int cid_count = 0;
@@ -303,6 +305,8 @@ userinit(void)
 int
 growproc(int n)
 {
+    
+  printf("grow\n");
     uint64 sz;
     struct proc *p;
     struct proc *pp = myproc();
@@ -400,6 +404,8 @@ exit(int status)
 {
   struct proc *p = myproc();
 
+  printf("exiting\n");
+
   if(p == initproc)
     panic("init exiting");
 
@@ -412,26 +418,36 @@ exit(int status)
     }
   }
 
+  printf("A\n");
+
   begin_op();
   iput(p->cwd);
   end_op();
   p->cwd = 0;
+  printf("B\n");
 
   acquire(&wait_lock);
 
   // Give any children to init.
   reparent(p);
+  
+  printf("C\n");
 
   // Parent might be sleeping in wait().
   wakeup(p->parent);
   
   acquire(&p->lock);
+  
+  printf("D\n");
 
   p->xstate = status;
   p->state = ZOMBIE;
+  
+  printf("E\n");
 
   release(&wait_lock);
-
+  
+  printf("F\n");
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
@@ -443,9 +459,6 @@ exit(int status)
 int
 waitpid(int pid, int* status, uint64 addr)
 {
-  panic("waitpid");
-  return 0;
-
   struct proc *pp;
   int havekids, pid_l;
   struct proc *p = myproc();
@@ -587,7 +600,10 @@ sched(void)
 {
   int intena;
   struct proc *p = myproc();
+  
+  printf("sched: %s\n", p->name);
 
+  procdump();
   if(!holding(&p->lock))
     panic("sched p->lock");
   if(mycpu()->noff != 1)
@@ -600,6 +616,8 @@ sched(void)
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->context);
   mycpu()->intena = intena;
+  
+  printf("Sched end\n");
 }
 
 // Give up the CPU for one scheduling round.
@@ -609,6 +627,8 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+  
+  printf("yielding\n");
   sched();
   release(&p->lock);
 }
@@ -654,7 +674,8 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
-
+  
+  printf("sleep\n");
   sched();
 
   // Tidy up.
