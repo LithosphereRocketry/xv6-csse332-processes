@@ -1,25 +1,11 @@
 // NAME: Ben Graham
-
-#include <stdio.h> // OH NO
-#include <stdlib.h> // OH NO
 #include <sys/time.h> // OH NO
 #include <time.h> // OH NO
 #include "pthread.h"
+#include "user/user.h"
 
 int verbose = 0;   // Whether to print array before and after sorting
 int nthreads = 2;  // Default number of threads is 2
-
-/**
- * Helper function to report timing information.
- */
-void output_time_difference(char* name, struct timeval* start,
-                            struct timeval* end) {
-  long secs_used =
-      (end->tv_sec - start->tv_sec);  // avoid overflow by subtracting first
-  long usecs_used = (end->tv_usec - start->tv_usec);
-  double secs = secs_used + (double)usecs_used / 1000000;
-  printf("%s took %f seconds\n", name, secs);
-}
 
 /**
  * Helper function to check whether the array is sorted.
@@ -66,7 +52,8 @@ int* copy_array(int* arr, int len) {
  */
 void fillWithRandom(int* arr, int len, int upperbd) {
   for (int i = 0; i < len; i++) {
-    arr[i] = rand() % upperbd;
+    // Make it sort of pseudorandom by multiplying two memory addresses and then mod by upperbd
+    arr[i] = ((unsigned long) ((((long) arr) + i) * (long) &len)) % upperbd;
   }
 }
 
@@ -168,12 +155,13 @@ void* mergesort_thread(void* v_info) {
     lefthalf.threads = info->threads/2;
     righthalf.threads = (info->threads+1)/2;
     
-    pthread_t partner;
+    bbc_pthread_t partner;
     pthread_create(&partner, NULL, mergesort_thread, (void*) &righthalf); // start the right half in a new thread, giving it half our available threads
     mergesort_thread(&lefthalf); // process the left half here with half the thread allocation
     pthread_join(partner, NULL); // wait for the right half to finish
     merge(info->arr, info->arr2, info->start, mid, info->end); // merge as normal
   }
+  return 0;
 }
 
 
@@ -209,15 +197,12 @@ void mergesort_pthread_init(int* arr, int len) {
  * @param name - a name for this test
  */
 void run_test(void (*sort)(int*, int), int* arr, int len, char* name) {
-  struct timeval startTime, endTime;
   if (verbose) {                           // print out input array
     printf("Starting array: \n");
     print_array(arr, len);
     printf("\n");
   }
-  gettimeofday(&startTime, NULL);
   sort(arr, len);                          // run the sort
-  gettimeofday(&endTime, NULL);
   int wasSorted = check_sorted(arr, len);  // make sure it worked
   if (wasSorted) {
     printf("Sort successful!\n");
@@ -229,7 +214,6 @@ void run_test(void (*sort)(int*, int), int* arr, int len, char* name) {
     print_array(arr, len);
     printf("\n");
   }
-  output_time_difference(name, &startTime, &endTime); // report timing
 }
 
 int main(int argc, char** argv) {

@@ -1,12 +1,15 @@
 #include "kernel/types.h"
 #include "kernel/clone.h"
 #include "pthread.h"
-#include <user/user.h>
+#include "user/user.h"
+#include "kernel/proc.h"
+
 
 // constants, can't import normal POSIX headers because of naming conflicts with xv6
 #define SIGCHLD 17
 #define CLONE_VM 0x00000100
 #define EAGAIN 11
+#define NULL 0
 
 struct pthread_internal_args {
     void *(*fn)(void*);
@@ -21,8 +24,8 @@ int pthread_run(void* args_ptr) {
     exit(0);
 }
 
-int pthread_create(pthread_t *restrict thread,
-                   const pthread_attr_t *restrict attr,
+int pthread_create(bbc_pthread_t *restrict thread,
+                   const bbc_pthread_attr_t *restrict attr,
                    void *(*start_routine)(void*),
                    void *restrict arg) { 
     void* stack = malloc(PTH_STACK_SIZE);
@@ -43,7 +46,7 @@ int pthread_create(pthread_t *restrict thread,
     }
 }
 
-int pthread_join(pthread_t thread, void** retval) {
+int pthread_join(bbc_pthread_t thread, void** retval) {
     int status;
     return waitpid(thread, &status, NULL); 
 }

@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "clone.h"
 
 uint64
 sys_exit(void)
@@ -88,4 +89,30 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64 sys_waitpid(void) {
+  int pid;
+  int* status;
+  uint64 addr;
+
+  argint(0, &pid);
+  argaddr(1, (uint64*) &status);
+  argaddr(2, &addr);
+
+  return waitpid(pid, status, addr);
+}
+
+uint64 sys_clone(void) {
+  int (*fn)(void*);
+  void* stack;
+  int flags;
+  void* arg;
+
+  argaddr(0, (uint64*) &fn);
+  argaddr(1, (uint64*) &stack);
+  argint(2, &flags);
+  argaddr(3, (uint64*) &arg);
+
+  return clone(fn, stack, flags, arg);
 }

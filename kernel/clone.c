@@ -17,7 +17,9 @@ extern struct spinlock wait_lock;
 extern struct proc* allocclone(void);
 
 int clone(int (*fn)(void*), void* stack, int flags, void* arg){
-    
+
+    printf("start clone\n");
+
     int pid;
 
     struct proc *existing_proc = myproc();  // grab current proc
