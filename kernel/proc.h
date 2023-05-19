@@ -1,3 +1,5 @@
+int waitpid(int pid, int* status, uint64 addr);
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
