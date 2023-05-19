@@ -8,7 +8,7 @@
 void* count(void* countptr) {
     int count = *(int*) countptr;
     for(int i = 0; i < count; i++) {
-        printf("%i...\n", i+1);
+        printf("%d...\n", i+1);
         sleep(1);
     }
     return 0;

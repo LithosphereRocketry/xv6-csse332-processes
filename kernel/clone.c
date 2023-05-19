@@ -78,6 +78,7 @@ int clone(int (*fn)(void*), void* stack, int flags, void* arg){
     // Cause fork to return 0 in the child.
     cloned_proc->trapframe->a0 = (uint64)arg; // point the function params to arg
     cloned_proc->trapframe->epc = (uint64)fn;  // start thread in right place?
+    cloned_proc->trapframe->sp = (uint64)stack; // give the thread its stack
 
     safestrcpy(cloned_proc->name, existing_proc->name, sizeof(existing_proc->name));
 
@@ -93,5 +94,6 @@ int clone(int (*fn)(void*), void* stack, int flags, void* arg){
     cloned_proc->state = RUNNABLE;
     release(&cloned_proc->lock);
 
+    procdump();
     return pid;
 }
