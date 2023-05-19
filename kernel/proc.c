@@ -110,7 +110,7 @@ int alloccid(){
     acquire(&cid_lock);
     cid = nextcid;
     nextcid = nextcid + 1;
-    release(&pid_lock);
+    release(&cid_lock);
 
     return cid;
 }
