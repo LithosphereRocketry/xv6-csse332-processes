@@ -507,7 +507,9 @@ waitpid(int pid, int* status, uint64 addr)
     sleep(p, &wait_lock);  //DOC: wait-sleep
   }
 }
-int wait(uint64 addr){struct proc *pp;
+int wait(uint64 addr){
+  // return waitpid(-1, 0, addr);
+  struct proc *pp;
   int havekids, pid;
   struct proc *p = myproc();
 
