@@ -53,6 +53,7 @@ procinit(void)
   
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+  initlock(&cid_lock, "cid_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -165,15 +166,13 @@ found:
 struct proc*
 allocclone(struct proc* pp)
 {
+
     struct proc* p;
 
     p = allocproc();
-
-    acquire(&p->lock);
     acquire(&pp->lock);
     p->cid = pp->cid;
     release(&pp->lock);
-    release(&p->lock);
 
     acquire(&cid_lock);
     nextcid--;
@@ -444,57 +443,99 @@ exit(int status)
 int
 waitpid(int pid, int* status, uint64 addr)
 {
-    struct proc *pp;
-    int havekids, pid_l;
-    struct proc *p = myproc();
+  panic("waitpid");
+  return 0;
 
-    acquire(&wait_lock);
+  struct proc *pp;
+  int havekids, pid_l;
+  struct proc *p = myproc();
 
-    for(;;){
-	// Scan through table looking for exited children.
-	havekids = 0;
-	for(pp = proc; pp < &proc[NPROC]; pp++){
-	    if(pid == -1){
-		if(pp->parent != proc){continue;}
-	    }else{
-		if(pp->pid != pid){continue;}
-	    }
-	    // make sure the child isn't still in exit() or swtch().
-	    acquire(&pp->lock);
+  acquire(&wait_lock);
 
-	    havekids = 1;
-	    if(pp->state == ZOMBIE){
-		// Found one.
-		pid_l = pp->pid;
-		if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
-			    sizeof(pp->xstate)) < 0) {
-		    release(&pp->lock);
-		    release(&wait_lock);
-		    return -1;
-		}
-		freeproc(pp);
-		release(&pp->lock);
-		release(&wait_lock);
-		if(status != 0){
-		    *status = pp->xstate;
-		}
-		return pid_l;
-	    }
-	    release(&pp->lock);
-	}
+  for(;;) {
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(pp = proc; pp < &proc[NPROC]; pp++){
+      if(pid == -1){
+        if(pp->parent != proc) { continue; }
+      } else {
+        if(pp->pid != pid){ continue; }
+      }
+      // make sure the child isn't still in exit() or swtch().
+      acquire(&pp->lock);
 
-	// No point waiting if we don't have any children.
-	if(!havekids || killed(p)){
-	    release(&wait_lock);
-	    return -1;
-	}
-
-	// Wait for a child to exit.
-	sleep(p, &wait_lock);  //DOC: wait-sleep
+      havekids = 1;
+        if(pp->state == ZOMBIE){
+        // Found one.
+        pid_l = pp->pid;
+        if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate, sizeof(pp->xstate)) < 0) {
+          release(&pp->lock);
+          release(&wait_lock);
+          return -1;
+        }
+        freeproc(pp);
+        release(&pp->lock);
+        release(&wait_lock);
+        if(status != 0){
+          *status = pp->xstate;
+        }
+        return pid_l;
+      }
+      release(&pp->lock);
     }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || killed(p)){
+      release(&wait_lock);
+      return -1;
+    }
+
+    // Wait for a child to exit.
+    sleep(p, &wait_lock);  //DOC: wait-sleep
+  }
 }
-int wait(uint64 addr){
-    return waitpid(-1, (int*)0, addr);
+int wait(uint64 addr){struct proc *pp;
+  int havekids, pid;
+  struct proc *p = myproc();
+
+  acquire(&wait_lock);
+
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(pp = proc; pp < &proc[NPROC]; pp++){
+      if(pp->parent == p){
+        // make sure the child isn't still in exit() or swtch().
+        acquire(&pp->lock);
+
+        havekids = 1;
+        if(pp->state == ZOMBIE){
+          // Found one.
+          pid = pp->pid;
+          if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
+                                  sizeof(pp->xstate)) < 0) {
+            release(&pp->lock);
+            release(&wait_lock);
+            return -1;
+          }
+          freeproc(pp);
+          release(&pp->lock);
+          release(&wait_lock);
+          return pid;
+        }
+        release(&pp->lock);
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || killed(p)){
+      release(&wait_lock);
+      return -1;
+    }
+    
+    // Wait for a child to exit.
+    sleep(p, &wait_lock);  //DOC: wait-sleep
+  }
 }
 
 // Per-CPU process scheduler.

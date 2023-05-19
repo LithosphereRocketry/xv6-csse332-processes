@@ -48,7 +48,8 @@ int pthread_create(bbc_pthread_t *restrict thread,
 
 int pthread_join(bbc_pthread_t thread, void** retval) {
     int status;
-    return waitpid(thread, &status, NULL); 
+    while(wait(&status) != thread);
+    return status; 
 }
 
 

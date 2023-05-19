@@ -17,9 +17,7 @@ extern struct spinlock wait_lock;
 extern struct proc* allocclone(void);
 
 int clone(int (*fn)(void*), void* stack, int flags, void* arg){
-    
     int pid;
-
     struct proc *existing_proc = myproc();  // grab current proc
     struct proc *cloned_proc = allocclone(); // alloc fresh proc
     cloned_proc->pagetable = proc_pagetable(cloned_proc); // generate and assign empty PT with trampoline
@@ -70,10 +68,8 @@ int clone(int (*fn)(void*), void* stack, int flags, void* arg){
             }
         }
     }
-
     // TODO - Execution + init proc stuff to run
     
-
     cloned_proc->sz = existing_proc->sz;
 
     // copy saved user registers.
@@ -98,5 +94,4 @@ int clone(int (*fn)(void*), void* stack, int flags, void* arg){
     release(&cloned_proc->lock);
 
     return pid;
-
 }
