@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "user/user.h"
 #include "pthread.h"
 
 #define SIZEOFTHING 1000000
@@ -11,6 +11,7 @@ void* count(void* countptr) {
         printf("%i...\n", i+1);
         sleep(1);
     }
+    return 0;
 }
 
 void* pokemem(void* mem) { // test access to memory
@@ -21,30 +22,31 @@ void* pokemem(void* mem) { // test access to memory
         memchar[i] = 'h';
     }
     printf("yo\n");
+    return 0;
 }
 
 void* testret(void* whatever) {
     sleep(1);
     int* ret = malloc(sizeof(int));
     *ret = 1234;
-    return(ret);
+    return ret;
 }
 
 int main(int argc, int argv) {
-    pthread_t thread;
+    bbc_pthread_t thread;
     int othercount = 5;
     int mycount = 3;
 
     pthread_create(&thread, 0, count, &othercount);
     count(&mycount);
-    pthread_join(thread, NULL);
+    pthread_join(thread, 0);
 
     char* mem = malloc(SIZEOFTHING);
     pthread_create(&thread, 0, pokemem, mem);
     for(int i = 0; i < SIZEOFTHING; i++) {
         mem[i] = 'j';
     }
-    pthread_join(thread, NULL);
+    pthread_join(thread, 0);
     printf("Memory shared safely %c\n", mem[12]);
     free(mem);
     // not yet supported
@@ -53,4 +55,5 @@ int main(int argc, int argv) {
     // pthread_join(thread, (void**) &ret);
     // printf("Value: %d\n", *ret);
     // free(ret);
+    return 0;
 }

@@ -1,3 +1,10 @@
+#ifndef PROC_H
+#define PROC_H
+
+#include "param.h"
+#include "riscv.h"
+#include "spinlock.h"
+
 int waitpid(int pid, int* status, uint64 addr);
 
 // Saved registers for kernel context switches.
@@ -108,3 +115,5 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 };
+
+#endif

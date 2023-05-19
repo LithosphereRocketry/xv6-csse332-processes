@@ -18,6 +18,7 @@ sub entry {
 entry("fork");
 entry("exit");
 entry("wait");
+entry("waitpid");
 entry("pipe");
 entry("read");
 entry("write");
@@ -36,3 +37,4 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+entry("clone");
