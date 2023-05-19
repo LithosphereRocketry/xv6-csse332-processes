@@ -455,7 +455,7 @@ waitpid(int pid, int* status, uint64 addr)
 	havekids = 0;
 	for(pp = proc; pp < &proc[NPROC]; pp++){
 	    if(pid == -1){
-		if(pp->parent != proc){continue;}
+		if(pp->parent != p){continue;}
 	    }else{
 		if(pp->pid != pid){continue;}
 	    }
