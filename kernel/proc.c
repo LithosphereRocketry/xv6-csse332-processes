@@ -186,36 +186,33 @@ allocclone(struct proc* pp)
 // including user pages.
 // p->lock must be held.
 static void
-freeproc(struct proc *p) {
+freeproc(struct proc *p)
+{
   
   printf("free\n");
-  struct proc *pp;
-  int cid_tofind = p->cid;
-  int cid_count = 0;
+    struct proc *pp;
+    int cid_tofind = p->cid;
+    int cid_count = 0;
 
-  for(pp = proc; pp < &proc[NPROC]; pp++){
-	  if(pp->cid == cid_tofind) { cid_count++; }
-  }
-  if(p->trapframe){
-    kfree((void*)p->trapframe);
-  }
-  printf("hello\n");
-  p->trapframe = 0;
-  if(p->pagetable && cid_count == 1){
-    proc_freepagetable(p->pagetable, p->sz);
-  }else if(p->pagetable){
-    proc_freeonlypagetable(p->pagetable, p->sz);
-  }
-  p->pagetable = 0;
-  p->sz = 0;
-  p->pid = 0;
-  p->parent = 0;
-  p->name[0] = 0;
-  p->chan = 0;
-  p->killed = 0;
-  p->xstate = 0;
-  p->state = UNUSED;
-  printf("goodbye\n");
+    for(pp = proc; pp < &proc[NPROC]; pp++){
+	if(pp->cid == cid_tofind){cid_count++;}
+    }
+    if(p->cid == cid_tofind){
+	if(p->trapframe)
+	    kfree((void*)p->trapframe);
+	p->trapframe = 0;
+	if(p->pagetable && cid_count == 1)
+	    proc_freepagetable(p->pagetable, p->sz);
+	p->pagetable = 0;
+	p->sz = 0;
+	p->pid = 0;
+	p->parent = 0;
+	p->name[0] = 0;
+	p->chan = 0;
+	p->killed = 0;
+	p->xstate = 0;
+	p->state = UNUSED;
+    }
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -260,14 +257,6 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
-}
-
-void
-proc_freeonlypagetable(pagetable_t pagetable, uint64 sz)
-{
-  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-  uvmunmap(pagetable, TRAPFRAME, 1, 0);
-  uvmfreemap(pagetable, sz);
 }
 
 // a user program that calls exec("/init")
@@ -321,7 +310,7 @@ growproc(int n)
 
   sz = p->sz;
   if(n > 0){
-    if((sz = uvmalloc_proc(p, sz, sz + n, PTE_W, proc)) == 0) {
+    if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
       return -1;
     }
   } else if(n < 0){
