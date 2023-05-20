@@ -188,8 +188,6 @@ allocclone(struct proc* pp)
 static void
 freeproc(struct proc *p)
 {
-  
-  printf("free\n");
     struct proc *pp;
     int cid_tofind = p->cid;
     int cid_count = 0;
@@ -396,8 +394,6 @@ exit(int status)
 {
   struct proc *p = myproc();
 
-  printf("exiting\n");
-
   if(p == initproc)
     panic("init exiting");
 
@@ -584,10 +580,7 @@ sched(void)
 {
   int intena;
   struct proc *p = myproc();
-  
-  printf("sched: %s\n", p->name);
 
-  procdump();
   if(!holding(&p->lock))
     panic("sched p->lock");
   if(mycpu()->noff != 1)
@@ -600,8 +593,6 @@ sched(void)
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->context);
   mycpu()->intena = intena;
-  
-  printf("Sched end\n");
 }
 
 // Give up the CPU for one scheduling round.
@@ -612,7 +603,6 @@ yield(void)
   acquire(&p->lock);
   p->state = RUNNABLE;
   
-  printf("yielding\n");
   sched();
   release(&p->lock);
 }
@@ -659,7 +649,6 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = chan;
   p->state = SLEEPING;
   
-  printf("sleep\n");
   sched();
 
   // Tidy up.

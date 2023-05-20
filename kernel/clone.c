@@ -100,7 +100,6 @@ int clone(int (*fn)(void*), void* stack, int flags, void* arg){
     acquire(&cloned_proc->lock);
     cloned_proc->state = RUNNABLE;
     release(&cloned_proc->lock);
-
-    procdump();
+    
     return pid;
 }
