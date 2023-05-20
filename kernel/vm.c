@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -243,6 +244,34 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
       kfree(mem);
       uvmdealloc(pagetable, a, oldsz);
       return 0;
+    }
+  }
+  return newsz;
+}
+
+uint64 uvmalloc_proc(uint64 oldsz, uint64 newsz, int xperm, struct proc procs[NPROC]) {
+  char *mem;
+  uint64 a;
+
+  if(newsz < oldsz)
+    return oldsz;
+
+  oldsz = PGROUNDUP(oldsz);
+  for(a = oldsz; a < newsz; a += PGSIZE){
+    mem = kalloc();
+    if(mem == 0){
+      uvmdealloc(myproc()->pagetable, a, oldsz);
+      return 0;
+    }
+    memset(mem, 0, PGSIZE);
+    for(int i = 0; i < NPROC; i++) {
+      if(myproc()->cid == procs[i].cid) {
+        if(mappages(procs[i].pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
+          kfree(mem);
+          uvmdealloc(myproc()->pagetable, a, oldsz);
+          return 0;
+        }
+      }
     }
   }
   return newsz;
