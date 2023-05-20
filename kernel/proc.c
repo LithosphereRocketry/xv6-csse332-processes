@@ -305,27 +305,31 @@ userinit(void)
 int
 growproc(int n)
 {
-    
   printf("grow\n");
-    uint64 sz;
-    struct proc *p;
-    struct proc *pp = myproc();
-    int cid_tofind = pp->cid;
-    
-    for(p = proc; p < &proc[NPROC]; p++){
-	if(p->cid == cid_tofind){
-	    sz = p->sz;
-	    if(n > 0){
-		if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
-		    return -1;
-		}
-	    } else if(n < 0){
-		sz = uvmdealloc(p->pagetable, sz, sz + n);
-	    }
-	    p->sz = sz;
-	}
+  uint64 sz;
+  struct proc *p;
+  struct proc *pp = myproc();
+  int cid_tofind = pp->cid;
+  printf("A\n");
+  
+  for(p = proc; p < &proc[NPROC]; p++) {
+    printf("%p : %d of %d\n", p, p->cid, cid_tofind);
+    if(p->cid == cid_tofind) {
+      printf("found!\n");
+      sz = p->sz;
+      if(n > 0){
+        if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
+          printf("malloc failed\n");
+          return -1;
+        }
+      } else if(n < 0) {
+        sz = uvmdealloc(p->pagetable, sz, sz + n);
+      }
+      p->sz = sz;
     }
-    return 0;
+  }
+  printf("done1\n");
+  return 0;
 }
 
 // Create a new process, copying the parent.
@@ -437,7 +441,7 @@ exit(int status)
   p->state = ZOMBIE;
 
   release(&wait_lock);
-  
+
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
