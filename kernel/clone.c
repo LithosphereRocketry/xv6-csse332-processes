@@ -79,6 +79,13 @@ int clone(int (*fn)(void*), void* stack, int flags, void* arg){
     cloned_proc->trapframe->a0 = (uint64)arg; // point the function params to arg
     cloned_proc->trapframe->epc = (uint64)fn;  // start thread in right place?
     cloned_proc->trapframe->sp = (uint64)stack; // give the thread its stack
+    
+    
+  // increment reference counts on open file descriptors.
+    for(int i = 0; i < NOFILE; i++)
+        if(existing_proc->ofile[i])
+            cloned_proc->ofile[i] = filedup(existing_proc->ofile[i]);
+    cloned_proc->cwd = idup(existing_proc->cwd);
 
     safestrcpy(cloned_proc->name, existing_proc->name, sizeof(existing_proc->name));
 

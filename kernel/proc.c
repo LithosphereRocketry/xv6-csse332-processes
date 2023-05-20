@@ -418,36 +418,26 @@ exit(int status)
     }
   }
 
-  printf("A\n");
-
   begin_op();
   iput(p->cwd);
   end_op();
   p->cwd = 0;
-  printf("B\n");
 
   acquire(&wait_lock);
 
   // Give any children to init.
   reparent(p);
-  
-  printf("C\n");
 
   // Parent might be sleeping in wait().
   wakeup(p->parent);
   
   acquire(&p->lock);
-  
-  printf("D\n");
 
   p->xstate = status;
   p->state = ZOMBIE;
-  
-  printf("E\n");
 
   release(&wait_lock);
   
-  printf("F\n");
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");

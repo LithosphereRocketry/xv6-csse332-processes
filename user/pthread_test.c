@@ -8,7 +8,7 @@
 void* count(void* countptr) {
     int count = *(int*) countptr;
     for(int i = 0; i < count; i++) {
-        printf("%d...\n", i+1);
+        printf("clone %d...\n", i+1);
         sleep(1);
     }
     return 0;
@@ -35,10 +35,12 @@ void* testret(void* whatever) {
 int main(int argc, int argv) {
     bbc_pthread_t thread;
     int othercount = 5;
-    int mycount = 3;
 
     pthread_create(&thread, 0, count, &othercount);
-    count(&mycount);
+    for(int i = 0; i < 3; i++) {
+        printf("parent %d...\n", i+1);
+        sleep(1);
+    }
     pthread_join(thread, 0);
 
     char* mem = malloc(SIZEOFTHING);
