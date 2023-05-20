@@ -249,7 +249,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
   return newsz;
 }
 
-uint64 uvmalloc_proc(uint64 oldsz, uint64 newsz, int xperm, struct proc procs[NPROC]) {
+uint64 uvmalloc_proc(struct proc* me, uint64 oldsz, uint64 newsz, int xperm, struct proc procs[NPROC]) {
   char *mem;
   uint64 a;
 
@@ -260,15 +260,15 @@ uint64 uvmalloc_proc(uint64 oldsz, uint64 newsz, int xperm, struct proc procs[NP
   for(a = oldsz; a < newsz; a += PGSIZE){
     mem = kalloc();
     if(mem == 0){
-      uvmdealloc(myproc()->pagetable, a, oldsz);
+      uvmdealloc(me->pagetable, a, oldsz);
       return 0;
     }
     memset(mem, 0, PGSIZE);
     for(int i = 0; i < NPROC; i++) {
-      if(myproc()->cid == procs[i].cid) {
+      if(me->cid == procs[i].cid) {
         if(mappages(procs[i].pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
           kfree(mem);
-          uvmdealloc(myproc()->pagetable, a, oldsz);
+          uvmdealloc(me->pagetable, a, oldsz);
           return 0;
         }
       }
@@ -324,7 +324,13 @@ uvmfree(pagetable_t pagetable, uint64 sz)
     uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1);
   freewalk(pagetable);
 }
-
+void
+uvmfreemap(pagetable_t pagetable, uint64 sz)
+{
+  if(sz > 0)
+    uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 0);
+  freewalk(pagetable);
+}
 // Given a parent process's page table, copy
 // its memory into a child's page table.
 // Copies both the page table and the
